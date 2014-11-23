@@ -83,8 +83,10 @@
 define(function Inspector(require, exports, module) {
     "use strict";
 
-    var Async           = require("utils/Async"),
-        EventDispatcher = require("utils/EventDispatcher");
+    var Async = require("utils/Async");
+
+    // jQuery exports object for events
+    var $exports = $(exports);
 
     /**
      * Map message IDs to the callback function and original JSON message
@@ -181,7 +183,7 @@ define(function Inspector(require, exports, module) {
     /** WebSocket did close */
     function _onDisconnect() {
         _socket = undefined;
-        exports.trigger("disconnect");
+        $exports.triggerHandler("disconnect");
     }
 
     /** WebSocket reported an error */
@@ -190,7 +192,7 @@ define(function Inspector(require, exports, module) {
             _connectDeferred.reject();
             _connectDeferred = null;
         }
-        exports.trigger("error", error);
+        $exports.triggerHandler("error", [error]);
     }
 
     /** WebSocket did open */
@@ -199,7 +201,7 @@ define(function Inspector(require, exports, module) {
             _connectDeferred.resolve();
             _connectDeferred = null;
         }
-        exports.trigger("connect");
+        $exports.triggerHandler("connect");
     }
 
     /** Received message from the WebSocket
@@ -225,14 +227,14 @@ define(function Inspector(require, exports, module) {
                 domain = domainAndMethod[0],
                 method = domainAndMethod[1];
 
-            EventDispatcher.triggerWithArray(exports[domain], method, response.params);
+            $(exports[domain]).triggerHandler(method, response.params);
         }
 
         // Always fire event handlers for all messages/errors
-        exports.trigger("message", response);
+        $exports.triggerHandler("message", [response]);
 
         if (response.error) {
-            exports.trigger("error", response.error, msgText);
+            $exports.triggerHandler("error", [response.error, msgText]);
         }
     }
 
@@ -264,6 +266,22 @@ define(function Inspector(require, exports, module) {
         request.send(null);
 
         return def.promise();
+    }
+
+    /** Register a handler to be called when the given event is triggered
+     * @param {string} event name
+     * @param {function} handler function
+     */
+    function on(name, handler) {
+        $exports.on(name, handler);
+    }
+
+    /** Remove the given or all event handler(s) for the given event or remove all event handlers
+     * @param {string} optional event name
+     * @param {function} optional handler function
+     */
+    function off(name, handler) {
+        $exports.off(name, handler);
     }
 
     /**
@@ -380,19 +398,14 @@ define(function Inspector(require, exports, module) {
         var i, j, domain, command;
         for (i in InspectorJSON.domains) {
             domain = InspectorJSON.domains[i];
-            var exportedDomain = {};
-            exports[domain.domain] = exportedDomain;
-            EventDispatcher.makeEventDispatcher(exportedDomain);
+            exports[domain.domain] = {};
             for (j in domain.commands) {
                 command = domain.commands[j];
-                exportedDomain[command.name] = _send.bind(undefined, domain.domain + "." + command.name, command.parameters);
+                exports[domain.domain][command.name] = _send.bind(undefined, domain.domain + "." + command.name, command.parameters);
             }
         }
     }
-    
-    
-    EventDispatcher.makeEventDispatcher(exports);
-    
+
     // Export public functions
     exports.connect              = connect;
     exports.connected            = connected;
@@ -401,6 +414,8 @@ define(function Inspector(require, exports, module) {
     exports.getDebuggableWindows = getDebuggableWindows;
     exports.getUserAgent         = getUserAgent;
     exports.init                 = init;
+    exports.off                  = off;
+    exports.on                   = on;
     exports.send                 = send;
     exports.setUserAgent         = setUserAgent;
 });

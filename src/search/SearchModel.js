@@ -21,13 +21,12 @@
  * 
  */
 
-/*global define */
+/*global define, $ */
 
 define(function (require, exports, module) {
     "use strict";
     
     var FileUtils   = require("file/FileUtils"),
-        EventDispatcher = require("utils/EventDispatcher"),
         FindUtils   = require("search/FindUtils");
 
     /**
@@ -40,7 +39,6 @@ define(function (require, exports, module) {
     function SearchModel() {
         this.clear();
     }
-    EventDispatcher.makeEventDispatcher(SearchModel.prototype);
 
     /** @const Constant used to define the maximum results found. 
      *  Note that this is a soft limit - we'll likely go slightly over it since
@@ -225,9 +223,9 @@ define(function (require, exports, module) {
      *      often, meaning that the view should buffer updates.
      */
     SearchModel.prototype.fireChanged = function (quickChange) {
-        this.trigger("change", quickChange);
+        $(this).triggerHandler("change", quickChange);
     };
-    
+
     // Public API
     exports.SearchModel = SearchModel;
 });

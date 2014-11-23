@@ -28,8 +28,7 @@
 define(function (require, exports, module) {
     "use strict";
     
-    var NodeConnection = require("utils/NodeConnection"),
-        EventDispatcher = require("utils/EventDispatcher");
+    var NodeConnection = require("utils/NodeConnection");
     
     // Used to remove all listeners at once when the connection drops
     var EVENT_NAMESPACE = ".NodeDomainEvent";
@@ -54,7 +53,7 @@ define(function (require, exports, module) {
      * 
      * To handle domain events, just listen for the event on the domain:
      * 
-     *     myDomain.on("someEvent", someHandler);
+     *     $(myDomain).on("someEvent", someHandler);
      * 
      * @constructor
      * @param {string} domainName Name of the registered Node Domain
@@ -71,13 +70,12 @@ define(function (require, exports, module) {
         this._connectionPromise = connection.connect(true)
             .then(this._load);
         
-        connection.on("close", function (event, promise) {
-            this.connection.off(EVENT_NAMESPACE);
+        $(connection).on("close", function (event, promise) {
+            $(this.connection).off(EVENT_NAMESPACE);
             this._domainLoaded = false;
             this._connectionPromise = promise.then(this._load);
         }.bind(this));
     }
-    EventDispatcher.makeEventDispatcher(NodeDomain.prototype);
     
     /** 
      * The underlying Node connection object for this domain.
@@ -138,9 +136,9 @@ define(function (require, exports, module) {
                 eventNames.forEach(function (domainEvent) {
                     var connectionEvent = this._domainName + ":" + domainEvent + EVENT_NAMESPACE;
                     
-                    connection.on(connectionEvent, function () {
+                    $(connection).on(connectionEvent, function () {
                         var params = Array.prototype.slice.call(arguments, 1);
-                        EventDispatcher.triggerWithArray(this, domainEvent, params);
+                        $(this).triggerHandler(domainEvent, params);
                     }.bind(this));
                 }, this);
             }.bind(this))

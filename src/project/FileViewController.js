@@ -50,7 +50,6 @@ define(function (require, exports, module) {
 
     // Load dependent modules
     var DocumentManager     = require("document/DocumentManager"),
-        EventDispatcher     = require("utils/EventDispatcher"),
         MainViewManager     = require("view/MainViewManager"),
         CommandManager      = require("command/CommandManager"),
         PerfUtils           = require("utils/PerfUtils"),
@@ -73,19 +72,18 @@ define(function (require, exports, module) {
      */
     var _fileSelectionFocus = PROJECT_MANAGER;
     
-    // Due to circular dependencies, not safe to call on() directly
-    /**
+    /** 
      * Change the doc selection to the working set when ever a new file is added to the working set
      */
-    EventDispatcher.on_duringInit(MainViewManager, "workingSetAdd", function (event, addedFile) {
+    $(MainViewManager).on("workingSetAdd", function (event, addedFile) {
         _fileSelectionFocus = WORKING_SET_VIEW;
-        exports.trigger("documentSelectionFocusChange");
+        $(exports).triggerHandler("documentSelectionFocusChange");
     });
 
-    /**
-     * Update the file selection focus whenever the contents of the editor area change
-     */
-    EventDispatcher.on_duringInit(MainViewManager, "currentFileChange", function (event, file, paneId) {
+    /** 
+      * Update the file selection focus whenever the contents of the editor area change
+      */
+    $(MainViewManager).on("currentFileChange", function (event, file, paneId) {
         var perfTimerName;
         if (!_curDocChangedDueToMe) {
             // The the cause of the doc change was not openAndSelectDocument, so pick the best fileSelectionFocus
@@ -97,7 +95,7 @@ define(function (require, exports, module) {
             }
         }
 
-        exports.trigger("documentSelectionFocusChange");
+        $(exports).triggerHandler("documentSelectionFocusChange");
 
         if (!_curDocChangedDueToMe) {
             PerfUtils.addMeasurement(perfTimerName);
@@ -117,7 +115,7 @@ define(function (require, exports, module) {
         // If fullPath corresonds to the current doc being viewed then opening the file won't
         // trigger a currentFileChange event, so we need to trigger a documentSelectionFocusChange 
         // in this case to signify the selection focus has changed even though the current document has not.
-        exports.trigger("documentSelectionFocusChange");
+        $(exports).triggerHandler("documentSelectionFocusChange");
     }
 
     /**
@@ -133,7 +131,7 @@ define(function (require, exports, module) {
 
         if (_fileSelectionFocus !== fileSelectionFocus) {
             _fileSelectionFocus = fileSelectionFocus;
-            exports.trigger("fileViewFocusChange");
+            $(exports).triggerHandler("fileViewFocusChange");
         }
     }
 
@@ -252,10 +250,9 @@ define(function (require, exports, module) {
     }
 
 
-    EventDispatcher.makeEventDispatcher(exports);
-    
     // Deprecated
     exports.addToWorkingSetAndSelect = addToWorkingSetAndSelect;
+
 
     // Define public API
     exports.getFileSelectionFocus = getFileSelectionFocus;

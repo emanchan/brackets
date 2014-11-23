@@ -242,8 +242,8 @@ define(function (require, exports, module) {
                     activeEditorChangeListener = jasmine.createSpy();
 
                 runs(function () {
-                    DocumentManager.on("currentDocumentChange", docChangeListener);
-                    EditorManager.on("activeEditorChange", activeEditorChangeListener);
+                    _$(DocumentManager).on("currentDocumentChange", docChangeListener);
+                    _$(EditorManager).on("activeEditorChange", activeEditorChangeListener);
                 });
                 runs(function () {
                     promise = new $.Deferred();
@@ -266,7 +266,7 @@ define(function (require, exports, module) {
                 var currentFileChangeListener = jasmine.createSpy();
 
                 runs(function () {
-                    MainViewManager.on("currentFileChange", currentFileChangeListener);
+                    _$(MainViewManager).on("currentFileChange", currentFileChangeListener);
                     expect(currentFileChangeListener.callCount).toBe(0);
                     promise = MainViewManager._open(MainViewManager.ACTIVE_PANE, { fullPath: testPath + "/test.js" });
                     waitsForDone(promise, "MainViewManager.doOpen");
@@ -278,7 +278,7 @@ define(function (require, exports, module) {
                     MainViewManager._closeAll(MainViewManager.ALL_PANES);
                     expect(currentFileChangeListener.callCount).toBe(2);
                     expect(currentFileChangeListener.calls[1].args[1]).toEqual(null);
-                    MainViewManager.off("currentFileChange", currentFileChangeListener);
+                    _$(MainViewManager).off("currentFileChange", currentFileChangeListener);
                 });
             });
             it("DocumentManager should listen to currentFileChange events", function () {
@@ -312,8 +312,8 @@ define(function (require, exports, module) {
                     paneLayoutChangeListener = jasmine.createSpy();
                     
                 runs(function () {
-                    MainViewManager.on("paneCreate", paneCreateListener);
-                    MainViewManager.on("paneLayoutChange", paneLayoutChangeListener);
+                    _$(MainViewManager).on("paneCreate", paneCreateListener);
+                    _$(MainViewManager).on("paneLayoutChange", paneLayoutChangeListener);
                 });
                 runs(function () {
                     MainViewManager.setLayoutScheme(1, 2);
@@ -331,8 +331,8 @@ define(function (require, exports, module) {
                     expect(paneLayoutChangeListener.calls[0].args[1]).toEqual("VERTICAL");
                 });
                 runs(function () {
-                    MainViewManager.off("paneCreate", paneCreateListener);
-                    MainViewManager.off("paneLayoutChange", paneLayoutChangeListener);
+                    _$(MainViewManager).off("paneCreate", paneCreateListener);
+                    _$(MainViewManager).off("paneLayoutChange", paneLayoutChangeListener);
                 });
             });
             it("should should show interstitial page", function () {
@@ -351,8 +351,8 @@ define(function (require, exports, module) {
                     paneLayoutChangeListener = jasmine.createSpy();
                     
                 runs(function () {
-                    MainViewManager.on("paneDestroy", paneDestroyListener);
-                    MainViewManager.on("paneLayoutChange", paneLayoutChangeListener);
+                    _$(MainViewManager).on("paneDestroy", paneDestroyListener);
+                    _$(MainViewManager).on("paneLayoutChange", paneLayoutChangeListener);
                 });
                 runs(function () {
                     MainViewManager.setLayoutScheme(1, 2);
@@ -377,8 +377,8 @@ define(function (require, exports, module) {
                     expect(paneLayoutChangeListener.calls[1].args[1]).toBeFalsy();
                 });
                 runs(function () {
-                    MainViewManager.off("paneDestroy", paneDestroyListener);
-                    MainViewManager.off("paneLayoutChange", paneLayoutChangeListener);
+                    _$(MainViewManager).off("paneDestroy", paneDestroyListener);
+                    _$(MainViewManager).off("paneLayoutChange", paneLayoutChangeListener);
                 });
             });
             it("should show two files", function () {
@@ -472,7 +472,7 @@ define(function (require, exports, module) {
                     };
                 
                 runs(function () {
-                    EditorManager.on("_fullEditorCreatedForDocument", handler);
+                    _$(EditorManager).on("_fullEditorCreatedForDocument", handler);
                     MainViewManager.setLayoutScheme(1, 2);
                 });
                 runs(function () {
@@ -493,7 +493,7 @@ define(function (require, exports, module) {
                 });
                 runs(function () {
                     editors = null;
-                    EditorManager.off("_fullEditorCreatedForDocument", handler);
+                    _$(EditorManager).off("_fullEditorCreatedForDocument", handler);
                 });
             });
             it("should activate pane when inline editor gains focus", function () {
@@ -504,7 +504,7 @@ define(function (require, exports, module) {
                     };
                 
                 runs(function () {
-                    EditorManager.on("_fullEditorCreatedForDocument", handler);
+                    _$(EditorManager).on("_fullEditorCreatedForDocument", handler);
                     MainViewManager.setLayoutScheme(1, 2);
                 });
                 runs(function () {
@@ -536,7 +536,7 @@ define(function (require, exports, module) {
                 var activePaneChangeListener = jasmine.createSpy();
                 
                 runs(function () {
-                    MainViewManager.on("activePaneChange", activePaneChangeListener);
+                    _$(MainViewManager).on("activePaneChange", activePaneChangeListener);
                 });
                 runs(function () {
                     MainViewManager.setLayoutScheme(1, 2);
@@ -550,7 +550,7 @@ define(function (require, exports, module) {
                 runs(function () {
                     expect(activePaneChangeListener.callCount).toBe(2);
                 });
-                MainViewManager.off("activePaneChange", activePaneChangeListener);
+                _$(MainViewManager).off("activePaneChange", activePaneChangeListener);
             });
             it("should enforce bounds", function () {
                 runs(function () {
@@ -568,7 +568,7 @@ define(function (require, exports, module) {
                 var paneLayoutChangeListener = jasmine.createSpy();
                 
                 runs(function () {
-                    MainViewManager.on("paneLayoutChange", paneLayoutChangeListener);
+                    _$(MainViewManager).on("paneLayoutChange", paneLayoutChangeListener);
                 });
                 runs(function () {
                     MainViewManager.setLayoutScheme(1, 2);
@@ -593,7 +593,7 @@ define(function (require, exports, module) {
                 runs(function () {
                     expect(paneLayoutChangeListener.callCount).toBe(2);
                 });
-                MainViewManager.off("paneLayoutChange", paneLayoutChangeListener);
+                _$(MainViewManager).off("paneLayoutChange", paneLayoutChangeListener);
             });
         });
         describe("Targeted Pane API tests", function () {

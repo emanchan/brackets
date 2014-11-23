@@ -40,7 +40,6 @@ define(function (require, exports, module) {
     require("utils/Global");
 
     var _              = require("thirdparty/lodash"),
-        EventDispatcher = require("utils/EventDispatcher"),
         FileSystem     = require("filesystem/FileSystem"),
         FileUtils      = require("file/FileUtils"),
         Async          = require("utils/Async"),
@@ -248,9 +247,9 @@ define(function (require, exports, module) {
                 return loadExtensionModule(name, config, entryPoint);
             })
             .then(function () {
-                exports.trigger("load", config.baseUrl);
+                $(exports).triggerHandler("load", config.baseUrl);
             }, function (err) {
-                exports.trigger("loadFailed", config.baseUrl);
+                $(exports).triggerHandler("loadFailed", config.baseUrl);
             });
     }
 
@@ -430,9 +429,6 @@ define(function (require, exports, module) {
         return promise;
     }
 
-    
-    EventDispatcher.makeEventDispatcher(exports);
-    
     // unit tests
     exports._setInitExtensionTimeout = _setInitExtensionTimeout;
     exports._getInitExtensionTimeout = _getInitExtensionTimeout;

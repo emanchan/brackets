@@ -31,7 +31,6 @@ define(function (require, exports, module) {
     "use strict";
     
     var WorkspaceManager        = require("view/WorkspaceManager"),
-        EventDispatcher         = require("utils/EventDispatcher"),
         DeprecationWarning      = require("utils/DeprecationWarning");
     
     /**
@@ -55,6 +54,5 @@ define(function (require, exports, module) {
     };
     
     // Deprecated PanelManager events
-    EventDispatcher.makeEventDispatcher(exports);
     _deprecateEvent("editorAreaResize", "workspaceUpdateLayout");
 });

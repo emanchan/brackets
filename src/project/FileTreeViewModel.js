@@ -21,7 +21,7 @@
  *
  */
 
-/*global define */
+/*global define, $*/
 /*unittests: FileTreeViewModel*/
 
 /**
@@ -36,7 +36,6 @@ define(function (require, exports, module) {
 
     var Immutable           = require("thirdparty/immutable"),
         _                   = require("thirdparty/lodash"),
-        EventDispatcher     = require("utils/EventDispatcher"),
         FileUtils           = require("file/FileUtils");
 
     // Constants
@@ -57,16 +56,12 @@ define(function (require, exports, module) {
      *
      * Contains the treeData used to generate the file tree and methods used to update that
      * treeData.
-     * 
-     * Instances dispatch the following events:
-     * - "change" (FileTreeViewModel.EVENT_CHANGE constant): Fired any time there's a change that should be reflected in the view.
      */
     function FileTreeViewModel() {
         // For convenience in callbacks, make a bound version of this method so that we can
         // just refer to it as this._commit when passing in a callback.
         this._commit = this._commit.bind(this);
     }
-    EventDispatcher.makeEventDispatcher(FileTreeViewModel.prototype);
 
     /**
      * @type {boolean}
@@ -154,7 +149,7 @@ define(function (require, exports, module) {
             changed = true;
         }
         if (changed) {
-            this.trigger(EVENT_CHANGE);
+            $(this).trigger(EVENT_CHANGE);
         }
     };
 
@@ -1088,7 +1083,7 @@ define(function (require, exports, module) {
     FileTreeViewModel.prototype.setSortDirectoriesFirst = function (sortDirectoriesFirst) {
         if (sortDirectoriesFirst !== this.sortDirectoriesFirst) {
             this.sortDirectoriesFirst = sortDirectoriesFirst;
-            this.trigger(EVENT_CHANGE);
+            $(this).trigger(EVENT_CHANGE);
         }
     };
     
@@ -1127,6 +1122,25 @@ define(function (require, exports, module) {
         // Does not emit change event. See SPECIAL CASE NOTE in docstring above.
     };
     
+    /**
+     * Listen for events. Currently a wrapper around jQuery's event system. See jQuery's .on
+     * documentation.
+     *
+     * Events published by the FileTreeViewModel:
+     *
+     * * change (EVENT_CHANGE constant in the module): fired any time there's a change that should be reflected in the view.
+     */
+    FileTreeViewModel.prototype.on = function (event, handler) {
+        $(this).on(event, handler);
+    };
+
+    /**
+     * Stop listening for events. See jQuery's .off documentation.
+     */
+    FileTreeViewModel.prototype.off = function (event, handler) {
+        $(this).off(event, handler);
+    };
+
     // Private API
     exports.EVENT_CHANGE          = EVENT_CHANGE;
     exports._filePathToObjectPath = _filePathToObjectPath;

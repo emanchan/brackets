@@ -133,7 +133,6 @@ define(function (require, exports, module) {
     
     // Dependencies
     var CodeMirror            = require("thirdparty/CodeMirror2/lib/codemirror"),
-        EventDispatcher       = require("utils/EventDispatcher"),
         Async                 = require("utils/Async"),
         FileUtils             = require("file/FileUtils"),
         _defaultLanguagesJSON = require("text!language/languages.json"),
@@ -358,7 +357,7 @@ define(function (require, exports, module) {
     function _triggerLanguageAdded(language) {
         // finally, store language to _language map
         _languages[language.getId()] = language;
-        exports.trigger("languageAdded", language);
+        $(exports).triggerHandler("languageAdded", [language]);
     }
 
     /**
@@ -367,7 +366,7 @@ define(function (require, exports, module) {
      * @param {!Language} language The modified language
      */
     function _triggerLanguageModified(language) {
-        exports.trigger("languageModified", language);
+        $(exports).triggerHandler("languageModified", [language]);
     }
     
     /**
@@ -1057,8 +1056,6 @@ define(function (require, exports, module) {
     }
     
    
-    EventDispatcher.makeEventDispatcher(exports);
-    
     // Prevent modes from being overwritten by extensions
     _patchCodeMirror();
     

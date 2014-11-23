@@ -32,7 +32,6 @@ define(function (require, exports, module) {
 
     // Load dependent modules
     var Commands            = require("command/Commands"),
-        EventDispatcher     = require("utils/EventDispatcher"),
         KeyBindingManager   = require("command/KeyBindingManager"),
         StringUtils         = require("utils/StringUtils"),
         CommandManager      = require("command/CommandManager"),
@@ -310,7 +309,7 @@ define(function (require, exports, module) {
             this._keyBindingRemoved = this._keyBindingRemoved.bind(this);
 
             this._command = command;
-            this._command
+            $(this._command)
                 .on("enabledStateChange", this._enabledChanged)
                 .on("checkedStateChange", this._checkedChanged)
                 .on("nameChange", this._nameChanged)
@@ -991,7 +990,6 @@ define(function (require, exports, module) {
      *
      * Events:
      * - beforeContextMenuOpen
-     * - beforeContextMenuClose
      *
      * @constructor
      * @extends {Menu}
@@ -1022,7 +1020,6 @@ define(function (require, exports, module) {
     ContextMenu.prototype = Object.create(Menu.prototype);
     ContextMenu.prototype.constructor = ContextMenu;
     ContextMenu.prototype.parentClass = Menu.prototype;
-    EventDispatcher.makeEventDispatcher(ContextMenu.prototype);
 
 
     /**
@@ -1054,7 +1051,7 @@ define(function (require, exports, module) {
             return;
         }
 
-        this.trigger("beforeContextMenuOpen");
+        $(this).triggerHandler("beforeContextMenuOpen");
 
         // close all other dropdowns
         closeAll();
@@ -1089,7 +1086,7 @@ define(function (require, exports, module) {
      * Closes the context menu.
      */
     ContextMenu.prototype.close = function () {
-        this.trigger("beforeContextMenuClose");
+        $(this).triggerHandler("beforeContextMenuClose");
         $("#" + StringUtils.jQueryIdEscape(this.id)).removeClass("open");
     };
 

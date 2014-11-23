@@ -31,7 +31,6 @@ define(function (require, exports, module) {
     "use strict";
     
     var _                  = require("thirdparty/lodash"),
-        EventDispatcher    = require("utils/EventDispatcher"),
         Commands           = require("command/Commands"),
         KeyBindingManager  = require("command/KeyBindingManager"),
         KeyEvent           = require("utils/KeyEvent"),
@@ -85,7 +84,6 @@ define(function (require, exports, module) {
         this._closed = false;
         this._enabled = true;
     }
-    EventDispatcher.makeEventDispatcher(FindBar.prototype);
     
     /*
      * Global FindBar functions for making sure only one is open at a time.
@@ -237,14 +235,14 @@ define(function (require, exports, module) {
         this._modalBar = new ModalBar(Mustache.render(_searchBarTemplate, templateVars), true);  // 2nd arg = auto-close on Esc/blur
         
         // When the ModalBar closes, clean ourselves up.
-        this._modalBar.on("close", function (event) {
+        $(this._modalBar).on("close", function (event) {
             // Hide error popup, since it hangs down low enough to make the slide-out look awkward
             self.showError(null);
             self._modalBar = null;
             self._closed = true;
             FindBar._removeFindBar(self);
             MainViewManager.focusActivePane();
-            self.trigger("close");
+            $(self).trigger("close");
         });
         
         FindBar._addFindBar(this);
@@ -252,12 +250,12 @@ define(function (require, exports, module) {
         var $root = this._modalBar.getRoot();
         $root
             .on("input", "#find-what", function () {
-                self.trigger("queryChange");
+                $(self).triggerHandler("queryChange");
             })
             .on("click", "#find-case-sensitive, #find-regexp", function (e) {
                 $(e.currentTarget).toggleClass("active");
                 self._updatePrefsFromSearchBar();
-                self.trigger("queryChange");
+                $(self).triggerHandler("queryChange");
             })
             .on("keydown", "#find-what, #replace-with", function (e) {
                 if (e.keyCode === KeyEvent.DOM_VK_RETURN) {
@@ -270,15 +268,15 @@ define(function (require, exports, module) {
                                 self.focusReplace();
                             } else {
                                 // Trigger a Find (which really means "Find All" in this context).
-                                self.trigger("doFind");
+                                $(self).triggerHandler("doFind");
                             }
                         } else {
-                            self.trigger("doReplaceAll");
+                            $(self).triggerHandler("doReplaceAll");
                         }
                     } else {
                         // In the single file case, we just want to trigger a Find Next (or Find Previous
                         // if Shift is held down).
-                        self.trigger("doFind", e.shiftKey);
+                        $(self).triggerHandler("doFind", [e.shiftKey]);
                     }
                 }
             });
@@ -288,10 +286,10 @@ define(function (require, exports, module) {
             this._addShortcutToTooltip($("#find-prev"), Commands.CMD_FIND_PREVIOUS);
             $root
                 .on("click", "#find-next", function (e) {
-                    self.trigger("doFind", false);
+                    $(self).triggerHandler("doFind", false);
                 })
                 .on("click", "#find-prev", function (e) {
-                    self.trigger("doFind", true);
+                    $(self).triggerHandler("doFind", true);
                 });
         }
         
@@ -299,10 +297,10 @@ define(function (require, exports, module) {
             this._addShortcutToTooltip($("#replace-yes"), Commands.CMD_REPLACE);
             $root
                 .on("click", "#replace-yes", function (e) {
-                    self.trigger("doReplace");
+                    $(self).triggerHandler("doReplace");
                 })
                 .on("click", "#replace-all", function (e) {
-                    self.trigger("doReplaceAll");
+                    $(self).triggerHandler("doReplaceAll");
                 })
                 // One-off hack to make Find/Replace fields a self-contained tab cycle
                 // TODO: remove once https://trello.com/c/lTSJgOS2 implemented

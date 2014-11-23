@@ -33,7 +33,6 @@ define(function (require, exports, module) {
     "use strict";
     
     var MainViewManager  = require("view/MainViewManager"),
-        EventDispatcher  = require("utils/EventDispatcher"),
         KeyEvent         = require("utils/KeyEvent"),
         AnimationUtils   = require("utils/AnimationUtils"),
         WorkspaceManager = require("view/WorkspaceManager");
@@ -102,7 +101,6 @@ define(function (require, exports, module) {
         WorkspaceManager.recomputeLayout();  // changes available ht for editor area
         MainViewManager.restoreAdjustedScrollState(MainViewManager.ALL_PANES, this.height());
     }
-    EventDispatcher.makeEventDispatcher(ModalBar.prototype);
     
     /**
      * A jQuery object containing the root node of the ModalBar.
@@ -202,7 +200,7 @@ define(function (require, exports, module) {
             window.document.body.removeEventListener("focusin", this._handleFocusChange, true);
         }
 
-        this.trigger("close");
+        $(this).triggerHandler("close");
         
         function doRemove() {
             self._$root.remove();

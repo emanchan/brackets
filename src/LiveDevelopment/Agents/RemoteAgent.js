@@ -35,8 +35,9 @@
 define(function RemoteAgent(require, exports, module) {
     "use strict";
 
+    var $exports = $(exports);
+
     var LiveDevelopment = require("LiveDevelopment/LiveDevelopment"),
-        EventDispatcher = require("utils/EventDispatcher"),
         Inspector       = require("LiveDevelopment/Inspector/Inspector"),
         RemoteFunctions = require("text!LiveDevelopment/Agents/RemoteFunctions.js");
 
@@ -49,7 +50,7 @@ define(function RemoteAgent(require, exports, module) {
         // res = {nodeId, name, value}
         var matches = /^data-ld-(.*)/.exec(res.name);
         if (matches) {
-            exports.trigger(matches[1], res);
+            $exports.triggerHandler(matches[1], res);
         }
     }
 
@@ -149,23 +150,20 @@ define(function RemoteAgent(require, exports, module) {
     /** Initialize the agent */
     function load() {
         _load = new $.Deferred();
-        Inspector.Page.on("frameNavigated.RemoteAgent", _onFrameNavigated);
-        Inspector.Page.on("frameStartedLoading.RemoteAgent", _stopKeepAliveInterval);
-        Inspector.DOM.on("attributeModified.RemoteAgent", _onAttributeModified);
+        $(Inspector.Page).on("frameNavigated.RemoteAgent", _onFrameNavigated);
+        $(Inspector.Page).on("frameStartedLoading.RemoteAgent", _stopKeepAliveInterval);
+        $(Inspector.DOM).on("attributeModified.RemoteAgent", _onAttributeModified);
 
         return _load.promise();
     }
 
     /** Clean up */
     function unload() {
-        Inspector.Page.off(".RemoteAgent");
-        Inspector.DOM.off(".RemoteAgent");
+        $(Inspector.Page).off(".RemoteAgent");
+        $(Inspector.DOM).off(".RemoteAgent");
         _stopKeepAliveInterval();
     }
-    
-    
-    EventDispatcher.makeEventDispatcher(exports);
-    
+
     // Export public functions
     exports.call = call;
     exports.load = load;

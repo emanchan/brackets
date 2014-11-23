@@ -27,8 +27,7 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var FileSystemStats = require("filesystem/FileSystemStats"),
-        EventDispatcher = require("utils/EventDispatcher");
+    var FileSystemStats = require("filesystem/FileSystemStats");
     
     // Initial file system data. 
     var _initialData = {
@@ -89,7 +88,6 @@ define(function (require, exports, module) {
         $.extend(this._data, _initialData);
         this._watchedPaths = {};
     }
-    EventDispatcher.makeEventDispatcher(MockFileSystemModel.prototype);
 
     MockFileSystemModel.prototype.stat = function (path) {
         var entry = this._data[path];
@@ -118,7 +116,7 @@ define(function (require, exports, module) {
     
     MockFileSystemModel.prototype._sendWatcherNotification = function (path) {
         if (this._isPathWatched(path)) {
-            this.trigger("change", path);
+            $(this).triggerHandler("change", path);
         }
     };
     

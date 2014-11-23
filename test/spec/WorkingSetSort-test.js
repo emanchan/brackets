@@ -81,7 +81,7 @@ define(function (require, exports, module) {
             
             runs(function () {
                 // Initialize: register listeners
-                MainViewManager.on("workingSetAdd", function (event, addedFile) {
+                testWindow.$(MainViewManager).on("workingSetAdd", function (event, addedFile) {
                     workingSetListItemCount++;
                 });
             });

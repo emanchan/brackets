@@ -50,7 +50,6 @@ define(function CSSDocumentModule(require, exports, module) {
     "use strict";
 
     var _               = require("thirdparty/lodash"),
-        EventDispatcher = require("utils/EventDispatcher"),
         CSSAgent        = require("LiveDevelopment/Agents/CSSAgent"),
         CSSUtils        = require("language/CSSUtils"),
         EditorManager   = require("editor/EditorManager"),
@@ -74,18 +73,17 @@ define(function CSSDocumentModule(require, exports, module) {
         this.onChange = this.onChange.bind(this);
         this.onDeleted = this.onDeleted.bind(this);
 
-        this.doc.on("change.CSSDocument", this.onChange);
-        this.doc.on("deleted.CSSDocument", this.onDeleted);
+        $(this.doc).on("change.CSSDocument", this.onChange);
+        $(this.doc).on("deleted.CSSDocument", this.onDeleted);
         
         this.onActiveEditorChange = this.onActiveEditorChange.bind(this);
-        EditorManager.on("activeEditorChange", this.onActiveEditorChange);
+        $(EditorManager).on("activeEditorChange", this.onActiveEditorChange);
         
         if (editor) {
             // Attach now
             this.attachToEditor(editor);
         }
     };
-    EventDispatcher.makeEventDispatcher(CSSDocument.prototype);
 
     /**
      * @private
@@ -127,8 +125,8 @@ define(function CSSDocumentModule(require, exports, module) {
  
     /** Close the document */
     CSSDocument.prototype.close = function close() {
-        this.doc.off(".CSSDocument");
-        EditorManager.off("activeEditorChange", this.onActiveEditorChange);
+        $(this.doc).off(".CSSDocument");
+        $(EditorManager).off("activeEditorChange", this.onActiveEditorChange);
         this.doc.releaseRef();
         this.detachFromEditor();
     };
@@ -149,8 +147,8 @@ define(function CSSDocumentModule(require, exports, module) {
         this.editor = editor;
         
         if (this.editor) {
-            HighlightAgent.on("highlight", this.onHighlight);
-            this.editor.on("cursorActivity.CSSDocument", this.onCursorActivity);
+            $(HighlightAgent).on("highlight", this.onHighlight);
+            $(this.editor).on("cursorActivity.CSSDocument", this.onCursorActivity);
             this.updateHighlight();
         }
     };
@@ -158,8 +156,8 @@ define(function CSSDocumentModule(require, exports, module) {
     CSSDocument.prototype.detachFromEditor = function () {
         if (this.editor) {
             HighlightAgent.hide();
-            HighlightAgent.off("highlight", this.onHighlight);
-            this.editor.off(".CSSDocument");
+            $(HighlightAgent).off("highlight", this.onHighlight);
+            $(this.editor).off(".CSSDocument");
             this.onHighlight();
             this.editor = null;
         }
@@ -230,7 +228,7 @@ define(function CSSDocumentModule(require, exports, module) {
 
         // shut down, since our Document is now dead
         this.close();
-        this.trigger("deleted", this);
+        $(this).triggerHandler("deleted", [this]);
     };
 
     /** Triggered when the active editor changes */

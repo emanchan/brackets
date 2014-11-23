@@ -30,7 +30,6 @@ define(function (require, exports, module) {
     "use strict";
 
     var CommandManager        = require("command/CommandManager"),
-        EventDispatcher       = require("utils/EventDispatcher"),
         Commands              = require("command/Commands"),
         DocumentManager       = require("document/DocumentManager"),
         EditorManager         = require("editor/EditorManager"),
@@ -81,7 +80,6 @@ define(function (require, exports, module) {
         this._$table   = this._panel.$panel.find(".table-container");
         this._model    = model;
     }
-    EventDispatcher.makeEventDispatcher(SearchResultsView.prototype);
     
     /** @type {SearchModel} The search results model we're viewing. */
     SearchResultsView.prototype._model = null;
@@ -325,7 +323,7 @@ define(function (require, exports, module) {
                     e.stopPropagation();
                 })
                 .on("click.searchResults", ".replace-checked", function (e) {
-                    self.trigger("replaceAll");
+                    $(self).triggerHandler("replaceAll");
                 });
         }
     };
@@ -551,7 +549,7 @@ define(function (require, exports, module) {
         
         // Listen for user interaction events with the panel and change events from the model.
         this._addPanelListeners();
-        this._model.on("change.SearchResultsView", this._handleModelChange.bind(this));
+        $(this._model).on("change.SearchResultsView", this._handleModelChange.bind(this));
     };
     
     /**
@@ -562,8 +560,8 @@ define(function (require, exports, module) {
             this._$table.empty();
             this._panel.hide();
             this._panel.$panel.off(".searchResults");
-            this._model.off("change.SearchResultsView");
-            this.trigger("close");
+            $(this._model).off("change.SearchResultsView");
+            $(this).triggerHandler("close");
         }
     };
     

@@ -40,9 +40,9 @@
  * but this is considered deprecated and may go away.
  *
  * The Editor object dispatches the following events:
- *    - keydown, keypress, keyup -- When any key event happens in the editor (whether it changes the
- *      text or not). Handlers are passed `(BracketsEvent, Editor, KeyboardEvent)`. The 3nd arg is the
- *      raw DOM event. Note: most listeners will only want to listen for "keypress".
+ *    - keyEvent -- When any key event happens in the editor (whether it changes the text or not).
+ *      Event handlers are passed `({Editor}, {KeyboardEvent})`. The 2nd arg is the raw DOM event.
+ *      Note: most listeners will only want to respond when `event.type === "keypress"`.
  *    - cursorActivity -- When the user moves the cursor or changes the selection, or an edit occurs.
  *      Note: do not listen to this in order to be generally informed of edits--listen to the
  *      "change" event on Document instead.
@@ -60,8 +60,8 @@
  * The Editor also dispatches "change" events internally, but you should listen for those on
  * Documents, not Editors.
  *
- * To listen for events, do something like this: (see EventDispatcher for details on this pattern)
- *     `editorInstance.on("eventname", handler);`
+ * These are jQuery events, so to listen for them you do something like this:
+ *     `$(editorInstance).on("eventname", handler);`
  */
 define(function (require, exports, module) {
     "use strict";
@@ -69,7 +69,6 @@ define(function (require, exports, module) {
     var AnimationUtils     = require("utils/AnimationUtils"),
         Async              = require("utils/Async"),
         CodeMirror         = require("thirdparty/CodeMirror2/lib/codemirror"),
-        EventDispatcher    = require("utils/EventDispatcher"),
         Menus              = require("command/Menus"),
         PerfUtils          = require("utils/PerfUtils"),
         PopUpManager       = require("widgets/PopUpManager"),
@@ -227,9 +226,9 @@ define(function (require, exports, module) {
         this._handleDocumentChange = this._handleDocumentChange.bind(this);
         this._handleDocumentDeleted = this._handleDocumentDeleted.bind(this);
         this._handleDocumentLanguageChanged = this._handleDocumentLanguageChanged.bind(this);
-        document.on("change", this._handleDocumentChange);
-        document.on("deleted", this._handleDocumentDeleted);
-        document.on("languageChanged", this._handleDocumentLanguageChanged);
+        $(document).on("change", this._handleDocumentChange);
+        $(document).on("deleted", this._handleDocumentDeleted);
+        $(document).on("languageChanged", this._handleDocumentLanguageChanged);
 
         var mode = this._getModeFromDocument();
         
@@ -317,13 +316,13 @@ define(function (require, exports, module) {
         
         this._installEditorListeners();
         
-        this.on("cursorActivity", function (event, editor) {
-            self._handleCursorActivity(event);
+        $(this).on("cursorActivity", function (jqEvent, editor) {
+            self._handleCursorActivity(jqEvent);
         });
-        this.on("keypress", function (event, editor, domEvent) {
-            self._handleKeypressEvents(domEvent);
+        $(this).on("keypress", function (jqEvent, editor, cmEvent) {
+            self._handleKeypressEvents(cmEvent);
         });
-        this.on("change", function (event, editor, changeList) {
+        $(this).on("change", function (jqEvent, editor, changeList) {
             self._handleEditorChange(changeList);
         });
         
@@ -361,16 +360,13 @@ define(function (require, exports, module) {
         });
     }
     
-    EventDispatcher.makeEventDispatcher(Editor.prototype);
-    EventDispatcher.markDeprecated(Editor.prototype, "keyEvent", "'keydown/press/up'");
-    
     /**
      * Removes this editor from the DOM and detaches from the Document. If this is the "master"
      * Editor that is secretly providing the Document's backing state, then the Document reverts to
      * a read-only string-backed mode.
      */
     Editor.prototype.destroy = function () {
-        this.trigger("beforeDestroy", this);
+        $(this).triggerHandler("beforeDestroy", [this]);
 
         // CodeMirror docs for getWrapperElement() say all you have to do is "Remove this from your
         // tree to delete an editor instance."
@@ -380,9 +376,9 @@ define(function (require, exports, module) {
         
         // Disconnect from Document
         this.document.releaseRef();
-        this.document.off("change", this._handleDocumentChange);
-        this.document.off("deleted", this._handleDocumentDeleted);
-        this.document.off("languageChanged", this._handleDocumentLanguageChanged);
+        $(this.document).off("change", this._handleDocumentChange);
+        $(this.document).off("deleted", this._handleDocumentDeleted);
+        $(this.document).off("languageChanged", this._handleDocumentLanguageChanged);
         
         if (this._visibleRange) {   // TextRange also refs the Document
             this._visibleRange.dispose();
@@ -714,7 +710,7 @@ define(function (require, exports, module) {
         // it to lose sync. If so, our whole view is stale - signal our owner to close us.
         if (this._visibleRange) {
             if (this._visibleRange.startLine === null || this._visibleRange.endLine === null) {
-                this.trigger("lostContent");
+                $(this).triggerHandler("lostContent");
                 return;
             }
         }
@@ -785,7 +781,7 @@ define(function (require, exports, module) {
         // whereas the "change" event should be listened to on the document. Also the
         // Editor dispatches a change event before this event is dispatched, because
         // CodeHintManager needs to hook in here when other things are already done.
-        this.trigger("editorChange", this, changeList);
+        $(this).triggerHandler("editorChange", [this, changeList]);
     };
     
     /**
@@ -822,7 +818,7 @@ define(function (require, exports, module) {
      */
     Editor.prototype._handleDocumentDeleted = function (event) {
         // Pass the delete event along as the cause (needed in MultiRangeInlineEditor)
-        this.trigger("lostContent", event);
+        $(this).triggerHandler("lostContent", [event]);
     };
     
     /**
@@ -840,10 +836,10 @@ define(function (require, exports, module) {
     Editor.prototype._installEditorListeners = function () {
         var self = this;
         
-        // Redispatch these CodeMirror key events as Editor events
+        // Redispatch these CodeMirror key events as jQuery events
         function _onKeyEvent(instance, event) {
-            self.trigger("keyEvent", self, event);  // deprecated
-            self.trigger(event.type, self, event);
+            $(self).triggerHandler("keyEvent", [self, event]);  // deprecated
+            $(self).triggerHandler(event.type, [self, event]);
             return event.defaultPrevented;   // false tells CodeMirror we didn't eat the event
         }
         this._codeMirror.on("keydown",  _onKeyEvent);
@@ -856,13 +852,13 @@ define(function (require, exports, module) {
         // Also, note that we use the new "changes" event in v4, which provides an array of
         // change objects. Our own event is still called just "change".
         this._codeMirror.on("changes", function (instance, changeList) {
-            self.trigger("change", self, changeList);
+            $(self).triggerHandler("change", [self, changeList]);
         });
         this._codeMirror.on("beforeChange", function (instance, changeObj) {
-            self.trigger("beforeChange", self, changeObj);
+            $(self).triggerHandler("beforeChange", [self, changeObj]);
         });
         this._codeMirror.on("cursorActivity", function (instance) {
-            self.trigger("cursorActivity", self);
+            $(self).triggerHandler("cursorActivity", [self]);
         });
         this._codeMirror.on("scroll", function (instance) {
             // If this editor is visible, close all dropdowns on scroll.
@@ -872,25 +868,25 @@ define(function (require, exports, module) {
                 Menus.closeAll();
             }
 
-            self.trigger("scroll", self);
+            $(self).triggerHandler("scroll", [self]);
         });
 
         // Convert CodeMirror onFocus events to EditorManager activeEditorChanged
         this._codeMirror.on("focus", function () {
             self._focused = true;
-            self.trigger("focus", self);
+            $(self).triggerHandler("focus", [self]);
         });
         
         this._codeMirror.on("blur", function () {
             self._focused = false;
-            self.trigger("blur", self);
+            $(self).triggerHandler("blur", [self]);
         });
 
         this._codeMirror.on("update", function (instance) {
-            self.trigger("update", self);
+            $(self).triggerHandler("update", [self]);
         });
         this._codeMirror.on("overwriteToggle", function (instance, newstate) {
-            self.trigger("overwriteToggle", self, newstate);
+            $(self).triggerHandler("overwriteToggle", [self, newstate]);
         });
     };
     
@@ -1667,7 +1663,7 @@ define(function (require, exports, module) {
             POPOVER_ARROW_HALF_BASE = POPOVER_ARROW_HALF_WIDTH + 3; // 3 is border radius
 
         function _removeListeners() {
-            self.off(".msgbox");
+            $(self).off(".msgbox");
         }
 
         // PopUpManager.removePopUp() callback
@@ -1688,7 +1684,7 @@ define(function (require, exports, module) {
         }
 
         function _addListeners() {
-            self
+            $(self)
                 .on("blur.msgbox",           _removeMessagePopover)
                 .on("change.msgbox",         _removeMessagePopover)
                 .on("cursorActivity.msgbox", _removeMessagePopover)
@@ -1771,7 +1767,7 @@ define(function (require, exports, module) {
 
                 // Don't add scroll listeners until open so we don't get event
                 // from scrolling cursor into view
-                self.on("scroll.msgbox", _removeMessagePopover);
+                $(self).on("scroll.msgbox", _removeMessagePopover);
 
                 // Animate closed -- which includes delay to show message
                 AnimationUtils.animateUsingClass(self._$messagePopover[0], "animateClose", 6000)
@@ -2195,7 +2191,7 @@ define(function (require, exports, module) {
                 this._codeMirror.setOption(cmOptions[prefName], newValue);
             }
             
-            this.trigger("optionChange", prefName, newValue);
+            $(this).triggerHandler("optionChange", [prefName, newValue]);
         }
     };
     

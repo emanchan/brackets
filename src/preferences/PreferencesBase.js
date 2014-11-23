@@ -60,7 +60,6 @@ define(function (require, exports, module) {
     
     var FileUtils   = require("file/FileUtils"),
         FileSystem  = require("filesystem/FileSystem"),
-        EventDispatcher = require("utils/EventDispatcher"),
         _           = require("thirdparty/lodash"),
         Async       = require("utils/Async"),
         globmatch   = require("thirdparty/globmatch");
@@ -121,10 +120,6 @@ define(function (require, exports, module) {
         }
     };
     
-    // MemoryStorage never actually dispatches change events, but Storage interface requires implementing on()/off()
-    EventDispatcher.makeEventDispatcher(MemoryStorage.prototype);
-    
-    
     /**
      * Error type for problems parsing preference files.
      * 
@@ -137,7 +132,6 @@ define(function (require, exports, module) {
     }
     
     ParsingError.prototype = new Error();
-    
     
     /**
      * Loads/saves preferences from a JSON file on disk.
@@ -242,7 +236,7 @@ define(function (require, exports, module) {
          */
         setPath: function (newPath) {
             this.path = newPath;
-            this.trigger("changed");
+            $(this).trigger("changed");
         },
         
         /**
@@ -252,13 +246,10 @@ define(function (require, exports, module) {
          */
         fileChanged: function (filePath) {
             if (filePath === this.path) {
-                this.trigger("changed");
+                $(this).trigger("changed");
             }
         }
     };
-    
-    EventDispatcher.makeEventDispatcher(FileStorage.prototype);
-    
     
     /**
      * A `Scope` is a data container that is tied to a `Storage`.
@@ -271,7 +262,7 @@ define(function (require, exports, module) {
      */
     function Scope(storage) {
         this.storage = storage;
-        storage.on("changed", this.load.bind(this));
+        $(storage).on("changed", this.load.bind(this));
         this.data = {};
         this._dirty = false;
         this._layers = [];
@@ -292,7 +283,7 @@ define(function (require, exports, module) {
                     var oldKeys = this.getKeys();
                     this.data = data;
                     result.resolve();
-                    this.trigger(PREFERENCE_CHANGE, {
+                    $(this).trigger(PREFERENCE_CHANGE, {
                         ids: _.union(this.getKeys(), oldKeys)
                     });
                 }.bind(this))
@@ -487,7 +478,7 @@ define(function (require, exports, module) {
             this._layers.push(layer);
             this._layerMap[layer.key] = layer;
             this._exclusions.push(layer.key);
-            this.trigger(PREFERENCE_CHANGE, {
+            $(this).trigger(PREFERENCE_CHANGE, {
                 ids: layer.getKeys(this.data[layer.key], {})
             });
         },
@@ -527,9 +518,6 @@ define(function (require, exports, module) {
             return _.union.apply(null, changes);
         }
     });
-    
-    EventDispatcher.makeEventDispatcher(Scope.prototype);
-    
     
     // Utility functions for the PathLayer
     
@@ -671,12 +659,12 @@ define(function (require, exports, module) {
         }
     };
     
-    
     /**
      * Provides layered preferences based on file globs, generally following the model provided
      * by [EditorConfig](http://editorconfig.org/). In usage, it looks something like this
      * (switching to single line comments because the glob interferes with the multiline comment):
      */
+    
 //    "path": {
 //        "src/thirdparty/CodeMirror2/**/*.js": {
 //            "spaceUnits": 2,
@@ -846,7 +834,6 @@ define(function (require, exports, module) {
         }
     };
     
-    
     /**
      * Represents a single, known Preference.
      * 
@@ -857,21 +844,27 @@ define(function (require, exports, module) {
         _.extend(this, properties);
     }
     
-    EventDispatcher.makeEventDispatcher(Preference.prototype);
-    
-    
-    /**
-     * Utility for PreferencesSystem & PrefixedPreferencesSystem -- attach EventDispatcher's on()/off()
-     * implementation as private _on_internal()/_off_internal() methods, so the custom on()/off() APIs
-     * these classes use can leverage EventDispatcher code internally. Also attach the regular public trigger().
-     */
-    function _addEventDispatcherImpl(proto) {
-        var temp = {};
-        EventDispatcher.makeEventDispatcher(temp);
-        proto._on_internal  = temp.on;
-        proto._off_internal = temp.off;
-        proto.trigger       = temp.trigger;
-    }
+    _.extend(Preference.prototype, {
+        /**
+         * Sets an event handler on this Preference.
+         * 
+         * @param {string} event Event name
+         * @param {Function} handler Function to handle the event
+         */
+        on: function (event, handler) {
+            $(this).on(event, handler);
+        },
+        
+        /**
+         * Removes an event handler from this Preference
+         * 
+         * @param {string} event Event name
+         * @param {?Function} handler Optional specific function to stop receiving events 
+         */
+        off: function (event, handler) {
+            $(this).off(event, handler);
+        }
+    });
     
     /**
      * Provides a subset of the PreferencesSystem functionality with preference
@@ -956,7 +949,7 @@ define(function (require, exports, module) {
             if (this._listenerInstalled) {
                 return;
             }
-            var self = this,
+            var $this = $(this),
                 prefix = this.prefix;
             
             var onlyWithPrefix = function (id) {
@@ -970,11 +963,11 @@ define(function (require, exports, module) {
                 return id.substr(prefix.length);
             };
             
-            this.base.on(PREFERENCE_CHANGE, function (e, data) {
+            $(this.base).on(PREFERENCE_CHANGE, function (e, data) {
                 var prefixedIds = data.ids.filter(onlyWithPrefix);
                 
                 if (prefixedIds.length > 0) {
-                    self.trigger(PREFERENCE_CHANGE, {
+                    $this.trigger(PREFERENCE_CHANGE, {
                         ids: prefixedIds.map(withoutPrefix)
                     });
                 }
@@ -985,7 +978,8 @@ define(function (require, exports, module) {
         
         /**
          * Sets up a listener for events for this PrefixedPreferencesSystem. Only prefixed events
-         * will notify. Optionally, you can set up a listener for a specific preference.
+         * will notify. Optionally, you can set up a listener for a
+         * specific preference.
          * 
          * @param {string} event Name of the event to listen for
          * @param {string|Function} preferenceID Name of a specific preference or the handler function
@@ -1002,7 +996,7 @@ define(function (require, exports, module) {
                 pref.on(event, handler);
             } else {
                 this._installListener();
-                this._on_internal(event, handler);
+                $(this).on(event, handler);
             }
         },
         
@@ -1024,7 +1018,7 @@ define(function (require, exports, module) {
                 var pref = this.getPreference(preferenceID);
                 pref.off(event, handler);
             } else {
-                this._off_internal(event, handler);
+                $(this).off(event, handler);
             }
         },
         
@@ -1038,9 +1032,6 @@ define(function (require, exports, module) {
             return this.base.save();
         }
     };
-    
-    _addEventDispatcherImpl(PrefixedPreferencesSystem.prototype);
-    
     
     /**
      * PreferencesSystem ties everything together to provide a simple interface for
@@ -1099,13 +1090,13 @@ define(function (require, exports, module) {
         var notifyPrefChange = function (id) {
             var pref = this._knownPrefs[id];
             if (pref) {
-                pref.trigger(PREFERENCE_CHANGE);
+                $(pref).trigger(PREFERENCE_CHANGE);
             }
         }.bind(this);
         
         // When we signal a general change message on this manager, we also signal a change
         // on the individual preference object.
-        this.on(PREFERENCE_CHANGE, function (e, data) {
+        $(this).on(PREFERENCE_CHANGE, function (e, data) {
             data.ids.forEach(notifyPrefChange);
         }.bind(this));
     }
@@ -1189,6 +1180,7 @@ define(function (require, exports, module) {
                 index = _.findIndex(shadowScopeOrder, function (entry) {
                     return entry === shadowEntry;
                 }),
+                $this = $(this),
                 i = index + 1;
             
             // Find an appropriate scope of lower priority to add it before
@@ -1208,7 +1200,7 @@ define(function (require, exports, module) {
                 break;
             case "resolved":
                 this._pushToScopeOrder(shadowEntry.id, shadowScopeOrder[i].id);
-                this.trigger(SCOPEORDER_CHANGE, {
+                $this.trigger(SCOPEORDER_CHANGE, {
                     id: shadowEntry.id,
                     action: "added"
                 });
@@ -1250,7 +1242,7 @@ define(function (require, exports, module) {
                 isPending = false,
                 self = this;
 
-            scope.on(PREFERENCE_CHANGE + ".prefsys", function (e, data) {
+            $(scope).on(PREFERENCE_CHANGE + ".prefsys", function (e, data) {
                 self._triggerChange(data);
             }.bind(this));
 
@@ -1335,8 +1327,9 @@ define(function (require, exports, module) {
             var scope = this._scopes[id];
             if (scope) {
                 _.pull(this._defaultContext.scopeOrder, id);
-                scope.off(".prefsys");
-                this.trigger(SCOPEORDER_CHANGE, {
+                var $this = $(this);
+                $(scope).off(".prefsys");
+                $this.trigger(SCOPEORDER_CHANGE, {
                     id: id,
                     action: "removed"
                 });
@@ -1669,7 +1662,7 @@ define(function (require, exports, module) {
                 var pref = this.getPreference(preferenceID);
                 pref.on(event, handler);
             } else {
-                this._on_internal(event, handler);
+                $(this).on(event, handler);
             }
         },
         
@@ -1691,7 +1684,7 @@ define(function (require, exports, module) {
                 var pref = this.getPreference(preferenceID);
                 pref.off(event, handler);
             } else {
-                this._off_internal(event, handler);
+                $(this).off(event, handler);
             }
         },
         
@@ -1707,7 +1700,7 @@ define(function (require, exports, module) {
             if (this._changeEventQueue) {
                 this._changeEventQueue = _.union(this._changeEventQueue, data.ids);
             } else {
-                this.trigger(PREFERENCE_CHANGE, data);
+                $(this).trigger(PREFERENCE_CHANGE, data);
             }
         },
         
@@ -1729,7 +1722,7 @@ define(function (require, exports, module) {
          */
         resumeChangeEvents: function () {
             if (this._changeEventQueue) {
-                this.trigger(PREFERENCE_CHANGE, {
+                $(this).trigger(PREFERENCE_CHANGE, {
                     ids: this._changeEventQueue
                 });
                 this._changeEventQueue = null;
@@ -1788,9 +1781,6 @@ define(function (require, exports, module) {
             return deferred.promise();
         }
     });
-    
-    _addEventDispatcherImpl(PreferencesSystem.prototype);
-    
     
     // Public interface
     exports.PreferencesSystem  = PreferencesSystem;
