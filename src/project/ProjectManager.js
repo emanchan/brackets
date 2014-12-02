@@ -123,10 +123,10 @@ define(function (require, exports, module) {
      * @type {jQueryObject}
      */
     var $projectTreeContainer;
-    
+
     /**
      * @private
-     * 
+     *
      * Reference to the container of the React component. Everything in this
      * node is managed by React.
      * @type {Element}
@@ -174,7 +174,7 @@ define(function (require, exports, module) {
             var error = errorInfo.type,
                 isFolder = errorInfo.isFolder,
                 name = errorInfo.name;
-            
+
             if (error === FileSystemError.ALREADY_EXISTS) {
                 _showErrorDialog(ERR_TYPE_CREATE_EXISTS, isFolder, null, name);
             } else if (error === ProjectModel.ERROR_INVALID_FILENAME) {
@@ -188,12 +188,12 @@ define(function (require, exports, module) {
             }
         }, 10);
     }
-    
+
     /**
      * @private
-     * 
+     *
      * Reverts to the previous selection (useful if there's an error).
-     * 
+     *
      * @param {string|File} previousPath The previously selected path.
      * @param {boolean} switchToWorkingSet True if we need to switch focus to the Working Set
      */
@@ -470,6 +470,25 @@ define(function (require, exports, module) {
     }
 
     /**
+     * Additional Project information
+     * General purpose
+     */
+
+    function setFeature(name, value) {
+
+        var context = _getProjectViewStateContext();
+        value = model.setFeature(name, value);
+
+        PreferencesManager.setViewState("project."+name, value, context);
+
+    }
+
+    function getFeature(name) {
+        return model.getFeature(name);
+    }
+
+
+    /**
      * Returns true if absPath lies within the project, false otherwise.
      * Does not support paths containing ".."
      * @param {string|FileSystemEntry} absPathOrEntry
@@ -515,10 +534,10 @@ define(function (require, exports, module) {
         });
         return d.promise();
     }
-    
+
     /**
      * @private
-     * 
+     *
      * Saves the project path.
      */
     var _saveProjectPath = function () {
@@ -609,7 +628,7 @@ define(function (require, exports, module) {
      * @private
      *
      * Rerender the file tree view.
-     * 
+     *
      * @param {boolean} forceRender Force the tree to rerender. Should only be needed by extensions that call rerenderTree.
      */
     _renderTree = function (forceRender) {
@@ -698,7 +717,7 @@ define(function (require, exports, module) {
                     deferred.reject();
                 }
             });
-            
+
             return deferred.promise();
         }
 
@@ -711,7 +730,7 @@ define(function (require, exports, module) {
                 // Last resort is Brackets source folder which is guaranteed to exist
                 deferred.resolve(FileUtils.getNativeBracketsDirectoryPath());
             });
-        
+
         return deferred.promise();
     }
 
@@ -868,6 +887,15 @@ define(function (require, exports, module) {
                         _setProjectRoot(rootEntry).always(function () {
                             model.setBaseUrl(PreferencesManager.getViewState("project.baseUrl", context) || "");
 
+                            // Get additional preferences
+
+                            console.log(PreferencesManager.getViewState("project.autoInt", context))
+
+                            model.setFeature("autoSave", PreferencesManager.getViewState("project.autoSave", context));
+                            model.setFeature("lineColor", PreferencesManager.getViewState("project.lineColor", context));
+                            model.setFeature("autoInt", PreferencesManager.getViewState("project.autoInt", context));
+                            model.setFeature("autoDir", PreferencesManager.getViewState("project.autoDir", context));
+
                             if (projectRootChanged) {
                                 _reloadProjectPreferencesScope();
                                 PreferencesManager._setCurrentEditingFile(rootPath);
@@ -929,7 +957,7 @@ define(function (require, exports, module) {
 
     /**
      * Refresh the project's file tree, maintaining the current selection.
-     * 
+     *
      * Note that the original implementation of this returned a promise to be resolved when the refresh is complete.
      * That use is deprecated and `refreshFileTree` is now a "fire and forget" kind of function.
      */
@@ -937,7 +965,7 @@ define(function (require, exports, module) {
         FileSystem.clearAllCaches();
         return new $.Deferred().resolve().promise();
     };
-    
+
     refreshFileTree = _.debounce(refreshFileTree, _refreshDelay);
 
     /**
@@ -1006,7 +1034,15 @@ define(function (require, exports, module) {
      * @return {$.Promise}
      */
     function _projectSettings() {
-        return PreferencesDialogs.showProjectPreferencesDialog(getBaseUrl()).getPromise();
+
+        var baseUrl = getBaseUrl(),
+            autoSave = getFeature("autoSave"),
+            lineColor = getFeature("lineColor"),
+            autoInt = getFeature("autoInt"),
+            autoDir = getFeature("autoDir");
+
+
+        return PreferencesDialogs.showProjectPreferencesDialog(baseUrl, autoSave, lineColor, autoInt, autoDir).getPromise();
     }
 
     /**
@@ -1089,7 +1125,7 @@ define(function (require, exports, module) {
         FileSyncManager.syncOpenDocuments();
 
         model.handleFSEvent(entry, added, removed);
-        
+
         // @TODO: DocumentManager should implement its own fsChange  handler
         //          we can clean up the calls to DocumentManager.notifyPathDeleted
         //          and privatize DocumentManager.notifyPathDeleted as well
@@ -1098,7 +1134,7 @@ define(function (require, exports, module) {
         if (removed) {
             removed.forEach(function (file) {
                 // The call to syncOpenDocuemnts above will not nofify
-                //  document manager about deleted images that are 
+                //  document manager about deleted images that are
                 //  not in the working set -- try to clean that up here
                 DocumentManager.notifyPathDeleted(file.fullPath);
             });
@@ -1121,37 +1157,37 @@ define(function (require, exports, module) {
     function forceFinishRename() {
         actionCreator.performRename();
     }
-    
+
     /**
      * @private
-     * 
+     *
      * Sets the width of the selection bar in the file tree.
-     * 
+     *
      * @param {int} width New width value
      */
     function _setFileTreeSelectionWidth(width) {
         model.setSelectionWidth(width);
         _renderTree();
     }
-    
+
     // Initialize variables and listeners that depend on the HTML DOM
     AppInit.htmlReady(function () {
         $projectTreeContainer = $("#project-files-container");
         $projectTreeContainer.addClass("jstree jstree-brackets");
         $projectTreeContainer.css("overflow", "auto");
         $projectTreeContainer.css("position", "relative");
-        
+
         fileTreeViewContainer = $("<div>").appendTo($projectTreeContainer)[0];
-        
+
         model.setSelectionWidth($projectTreeContainer.width());
-        
+
         $(".main-view").click(function (jqEvent) {
             if (!jqEvent.target.classList.contains("jstree-rename-input")) {
                 forceFinishRename();
                 actionCreator.setContext(null);
             }
         });
-        
+
         $("#working-set-list-container").on("contentChanged", function () {
             $projectTreeContainer.trigger("contentChanged");
         });
@@ -1167,7 +1203,7 @@ define(function (require, exports, module) {
         $projectTreeContainer.on("contextmenu", function () {
             forceFinishRename();
         });
-        
+
         // When a context menu item is selected, we need to clear the context
         // because we don't get a beforeContextMenuClose event since Bootstrap
         // handles this directly.
@@ -1183,9 +1219,9 @@ define(function (require, exports, module) {
             }
             _renderTree();
         });
-        
+
         _renderTree();
-        
+
         ViewUtils.addScrollerShadow($projectTreeContainer[0]);
     });
 
@@ -1220,7 +1256,7 @@ define(function (require, exports, module) {
         return null;
     }
 
-    
+
     EventDispatcher.makeEventDispatcher(exports);
 
     // Init default project path to welcome project
@@ -1241,7 +1277,7 @@ define(function (require, exports, module) {
     EventDispatcher.on_duringInit(FileViewController, "documentSelectionFocusChange", _documentSelectionFocusChange);
     EventDispatcher.on_duringInit(FileViewController, "fileViewFocusChange", _fileViewControllerChange);
     EventDispatcher.on_duringInit(MainViewManager, "currentFileChange", _currentFileChange);
-    
+
     // Commands
     CommandManager.register(Strings.CMD_OPEN_FOLDER,      Commands.FILE_OPEN_FOLDER,      openProject);
     CommandManager.register(Strings.CMD_PROJECT_SETTINGS, Commands.FILE_PROJECT_SETTINGS, _projectSettings);
@@ -1252,7 +1288,7 @@ define(function (require, exports, module) {
         .on("change", function () {
             actionCreator.setSortDirectoriesFirst(PreferencesManager.get(SORT_DIRECTORIES_FIRST));
         });
-    
+
     actionCreator.setSortDirectoriesFirst(PreferencesManager.get(SORT_DIRECTORIES_FIRST));
 
     /**
@@ -1272,7 +1308,7 @@ define(function (require, exports, module) {
      */
     renameItemInline = function (entry) {
         var d = new $.Deferred();
-        
+
         model.startRename(entry)
             .done(function () {
                 d.resolve();
@@ -1379,11 +1415,11 @@ define(function (require, exports, module) {
     function rerenderTree() {
         _renderTree(true);
     }
-    
-    
+
+
     // Private API helpful in testing
     exports._actionCreator                 = actionCreator;
-    
+
     // Private API for use with SidebarView
     exports._setFileTreeSelectionWidth    = _setFileTreeSelectionWidth;
 

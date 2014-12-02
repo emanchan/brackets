@@ -1,24 +1,24 @@
 /*
  * Copyright (c) 2012 Adobe Systems Incorporated. All rights reserved.
- *  
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *  
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 
@@ -31,7 +31,7 @@
  */
 define(function (require, exports, module) {
     "use strict";
-    
+
     require("thirdparty/path-utils/path-utils.min");
 
     var Dialogs                = require("widgets/Dialogs"),
@@ -78,10 +78,10 @@ define(function (require, exports, module) {
      * @return {Dialog} A Dialog object with an internal promise that will be resolved with the ID
      *      of the clicked button when the dialog is dismissed. Never rejected.
      */
-    function showProjectPreferencesDialog(baseUrl, errorMessage) {
+    function showProjectPreferencesDialog(baseUrl, autoSave, lineColor, autoInt, autoDir, errorMessage) {
         var $baseUrlControl,
             dialog;
-        
+
         // Title
         var projectName = "",
             projectRoot = ProjectManager.getProjectRoot(),
@@ -90,16 +90,20 @@ define(function (require, exports, module) {
             projectName = projectRoot.name;
         }
         title = StringUtils.format(Strings.PROJECT_SETTINGS_TITLE, projectName);
-        
+
         var templateVars = {
             title        : title,
             baseUrl      : baseUrl,
             errorMessage : errorMessage,
-            Strings      : Strings
+            Strings      : Strings,
+            autoSave     : autoSave,
+            lineColor    : lineColor,
+            autoInt      : autoInt,
+            autoDir      : autoDir
         };
-        
+
         dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(SettingsDialogTemplate, templateVars));
-        
+
         dialog.done(function (id) {
             if (id === Dialogs.DIALOG_BTN_OK) {
                 var baseUrlValue = $baseUrlControl.val();
@@ -108,13 +112,34 @@ define(function (require, exports, module) {
                     ProjectManager.setBaseUrl(baseUrlValue);
                 } else {
                     // Re-invoke dialog with result (error message)
-                    showProjectPreferencesDialog(baseUrlValue, result);
+                    showProjectPreferencesDialog(baseUrlValue, autoSave, lineColor, autoInt, autoDir, result);
                 }
+
+                // additional stuff here
+                var autoSaveValue = $autoSaveControl.is(':checked');
+                var lineColorValue = $lineColorControl.is(':checked');
+                var autoIntValue = $autoIntControl.val();
+                var autoDirValue = $autoDirControl.val();
+
+                // Save everything
+                // TODO : validate data
+                ProjectManager.setFeature("autoSave", autoSaveValue);
+                ProjectManager.setFeature("lineColor", lineColorValue);
+                ProjectManager.setFeature("autoInt", autoIntValue);
+                ProjectManager.setFeature("autoDir", autoDirValue);
             }
         });
 
         // Give focus to first control
         $baseUrlControl = dialog.getElement().find(".url");
+
+        // Additional Stuff
+        $autoSaveControl = dialog.getElement().find("#autoSave");
+        $lineColorControl = dialog.getElement().find("#lineColor");
+        $autoIntControl = dialog.getElement().find("#autoInt");
+        $autoDirControl = dialog.getElement().find("#autoDir");
+
+        // Focus on URL
         $baseUrlControl.focus();
 
         return dialog;

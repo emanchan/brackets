@@ -127,6 +127,7 @@ define(function (require, exports, module) {
         return _.last(path) !== "/";
     }
 
+
     /**
      * @private
      *
@@ -208,7 +209,7 @@ define(function (require, exports, module) {
      *
      * The ProjectModel provides methods for accessing information about the current open project.
      * It also manages the view model to display a FileTreeView of the project.
-     * 
+     *
      * Events:
      * - EVENT_CHANGE (`change`) - Fired when there's a change that should refresh the UI
      * - EVENT_SHOULD_SELECT (`select`) - Fired when a selection has been made in the file tree and the file tree should be selected
@@ -234,7 +235,7 @@ define(function (require, exports, module) {
 
     /**
      * @type {Directory}
-     * 
+     *
      * The root Directory object for the project.
      */
     ProjectModel.prototype.projectRoot = null;
@@ -250,17 +251,23 @@ define(function (require, exports, module) {
     /**
      * @private
      * @type {string}
-     * 
+     *
      * Encoded URL
      * @see {@link ProjectModel#getBaseUrl}, {@link ProjectModel#setBaseUrl}
      */
     ProjectModel.prototype._projectBaseUrl = "";
 
+    /* Addtional Stuff */
+    ProjectModel.prototype._projectautoSave = false;
+    ProjectModel.prototype._projectautoInt = 0;
+    ProjectModel.prototype._projectautoDir = "";
+    ProjectModel.prototype._projectlineColor = false;
+    
     /**
      * @private
      * @type {{selected: ?string, context: ?string, previousContext: ?string, rename: ?Object}}
      *
-     * Keeps track of selected files, context, previous context and files 
+     * Keeps track of selected files, context, previous context and files
      * that are being renamed or created.
      */
     ProjectModel.prototype._selections = null;
@@ -284,7 +291,7 @@ define(function (require, exports, module) {
     /**
      * @private
      * @type {?$.Promise.<Array<File>>}
-     * 
+     *
      * A promise that is resolved with an array of all project files. Used by
      * ProjectManager.getAllFiles().
      */
@@ -301,19 +308,19 @@ define(function (require, exports, module) {
             this.setSelected(null);
         }
     };
-    
+
     /**
      * Sets the width of the selection bar.
-     * 
+     *
      * @param {int} width New width
      */
     ProjectModel.prototype.setSelectionWidth = function (width) {
         this._viewModel.setSelectionWidth(width);
     };
-    
+
     /**
      * Tracks the scroller position.
-     * 
+     *
      * @param {int} scrollWidth Width of the tree container
      * @param {int} scrollTop Top of scroll position
      * @param {int} scrollLeft Left of scroll position
@@ -600,7 +607,7 @@ define(function (require, exports, module) {
     ProjectModel.prototype.showInTree = function (path) {
         var d = new $.Deferred();
         path = _getPathFromFSObject(path);
-        
+
         if (!this.isWithinProject(path)) {
             return d.resolve().promise();
         }
@@ -642,7 +649,7 @@ define(function (require, exports, module) {
             path = null;
             pathInProject = null;
         }
-        
+
         this.performRename();
 
         this._viewModel.moveMarker("selected", oldProjectPath, pathInProject);
@@ -650,7 +657,7 @@ define(function (require, exports, module) {
             this._viewModel.moveMarker("context", this.makeProjectRelativeIfPossible(this._selections.context), null);
             delete this._selections.context;
         }
-        
+
         var previousSelection = this._selections.selected;
         this._selections.selected = path;
 
@@ -662,11 +669,11 @@ define(function (require, exports, module) {
                     hadFocus: this._focused
                 });
             }
-            
+
             this.trigger(EVENT_SHOULD_FOCUS);
         }
     };
-    
+
     /**
      * Gets the currently selected file or directory.
      *
@@ -723,7 +730,7 @@ define(function (require, exports, module) {
         }
 
         path = _getPathFromFSObject(path);
-        
+
         if (!_doNotRename) {
             this.performRename();
         }
@@ -775,13 +782,13 @@ define(function (require, exports, module) {
         if (this._selections.rename && this._selections.rename.path === path) {
             return;
         }
-        
+
         var projectRelativePath = this.makeProjectRelativeIfPossible(path);
-        
+
         if (!this._viewModel.isFilePathVisible(projectRelativePath)) {
             this.showInTree(path);
         }
-        
+
         if (path !== this._selections.context) {
             this.setContext(path);
         } else {
@@ -906,13 +913,13 @@ define(function (require, exports, module) {
         if (isFolder) {
             newPath += "/";
         }
-        
+
         delete this._selections.rename;
         delete this._selections.context;
         if (this._selections.selected === oldPath) {
             this._selections.selected = newPath;
         }
-        
+
         viewModel.moveMarker("rename", oldProjectPath, null);
         viewModel.moveMarker("context", oldProjectPath, null);
         viewModel.moveMarker("creating", oldProjectPath, null);
@@ -920,7 +927,7 @@ define(function (require, exports, module) {
         if (renameInfo.type === FILE_CREATING) {
             this.createAtPath(newPath).done(function (entry) {
                 viewModel.renameItem(oldProjectPath, newName);
-                
+
                 renameInfo.deferred.resolve(entry);
             }).fail(function (error) {
                 self._viewModel.deleteAtPath(self.makeProjectRelativeIfPossible(renameInfo.path));
@@ -1015,7 +1022,7 @@ define(function (require, exports, module) {
 
     /**
      * Sets the `sortDirectoriesFirst` option for the file tree view.
-     * 
+     *
      * @param {boolean} True if directories should appear first
      */
     ProjectModel.prototype.setSortDirectoriesFirst = function (sortDirectoriesFirst) {
@@ -1063,7 +1070,7 @@ define(function (require, exports, module) {
             });
         }
     };
-    
+
     /**
      * Clears caches and refreshes the contents of the tree.
      *
@@ -1076,7 +1083,7 @@ define(function (require, exports, module) {
             selections  = this._selections,
             viewModel   = this._viewModel,
             deferred    = new $.Deferred();
-        
+
         this.setProjectRoot(projectRoot).then(function () {
             self.reopenNodes(openNodes).then(function () {
                 if (selections.selected) {
@@ -1135,7 +1142,7 @@ define(function (require, exports, module) {
                     }
                     self._viewModel.setDirectoryContents(self.makeProjectRelativeIfPossible(entry.fullPath), contents);
                 });
-                
+
                 // Exit early because we can't update the viewModel until we get the directory contents.
                 return;
             }
@@ -1152,12 +1159,12 @@ define(function (require, exports, module) {
                     _.find(removed, { fullPath: this._selections.selected })) {
                 this.setSelected(null);
             }
-            
+
             if (this._selections.rename &&
                     _.find(removed, { fullPath: this._selections.rename.path })) {
                 this.cancelRename();
             }
-            
+
             if (this._selections.context &&
                     _.find(removed, { fullPath: this._selections.context })) {
                 this.setContext(null);
@@ -1172,7 +1179,7 @@ define(function (require, exports, module) {
 
     /**
      * Closes the directory at path and recursively closes all of its children.
-     * 
+     *
      * @param {string} path Path of subtree to close
      */
     ProjectModel.prototype.closeSubtree = function (path) {
@@ -1192,7 +1199,7 @@ define(function (require, exports, module) {
         this.setDirectoryOpen(path, true).then(function () {
             var projectRelativePath = self.makeProjectRelativeIfPossible(path),
                 childNodes = self._viewModel.getChildDirectories(projectRelativePath);
-            
+
             Async.doInParallel(childNodes, function (node) {
                 return self.setDirectoryOpen(path + node, openOrClose);
             }, true).then(function () {
@@ -1201,7 +1208,7 @@ define(function (require, exports, module) {
                 d.reject(err);
             });
         });
-        
+
         return d.promise();
     };
 
